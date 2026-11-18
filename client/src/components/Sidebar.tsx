@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { LtIcon, type LtIconName } from "./ltIcons";
+import { BrandLogo } from "./BrandLogo";
 
 interface NavItem {
   to: string;
@@ -71,9 +72,8 @@ interface SidebarProps {
 export function Sidebar({ authEnabled, footer, status }: SidebarProps & { status?: ReactNode }) {
   return (
     <aside className="sticky top-0 flex h-screen w-56 flex-none flex-col bg-bg">
-      <div className="flex items-center gap-2.5 px-[18px] pb-5 pt-[18px]">
-        <img src="/toaster_favicon.png" alt="" className="block h-8 w-8 object-contain" />
-        <span className="font-display text-lg font-semibold">LlamaToaster</span>
+      <div className="flex items-center px-[18px] pb-5 pt-[18px]">
+        <BrandLogo />
       </div>
       <nav aria-label="Main" className="flex flex-col gap-0.5 px-2.5">
         <NavList authEnabled={authEnabled} />

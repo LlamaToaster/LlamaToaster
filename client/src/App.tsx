@@ -20,6 +20,7 @@ import { Device } from "./pages/Device";
 import { api, setUnauthorizedHandler } from "./api/client";
 import { createUnauthorizedRecheck, saveReturnPath, takeReturnPath } from "./api/session";
 import type { AuthStatus } from "./types";
+import { BrandLogo } from "./components/BrandLogo";
 
 // Boot-check retry: 1s, 2s, 4s ... capped, until the server answers.
 const BOOT_RETRY_MAX_MS = 30_000;
@@ -150,8 +151,7 @@ function Shell({ authStatus }: { authStatus: AuthStatus }) {
       {narrow && (
         <>
           <header className="sticky top-0 z-[8] flex flex-[1_0_100%] items-center gap-2.5 border-b border-border bg-bg px-4 py-1.5">
-            <img src="/toaster_favicon.png" alt="" className="h-7 w-7 object-contain" />
-            <span className="font-display text-lg font-semibold">LlamaToaster</span>
+            <BrandLogo size="compact" />
             <button
               type="button"
               onClick={() => setDrawer((d) => !d)}
