@@ -7,9 +7,10 @@ param([switch]$Uninstall)
 $ErrorActionPreference = 'Stop'
 $name = 'com.llamatoaster.vram'
 # Every LlamaToaster extension ID allowed to call the host: the unpacked build
-# (fixed by the "key" in manifest.json of the LlamaToaster/extension repo). Add the Chrome Web Store ID
-# here if it is ever published under a different key.
-$extensionIds = @('odghfahbjacleniojhemnojbiabfebon')
+# (fixed by the "key" in manifest.json of the LlamaToaster/extension repo) and the
+# Chrome Web Store build, which has no key and so its own ID. Without the store ID
+# Chrome refuses the host and the popup shows an estimated 0 GB in use.
+$extensionIds = @('odghfahbjacleniojhemnojbiabfebon', 'lmgiomdgkifkclhigbnagcafibbegjmg')
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $manifest = Join-Path $dir "$name.json"
 $browsers = 'Google\Chrome', 'Microsoft\Edge', 'BraveSoftware\Brave-Browser', 'Chromium'

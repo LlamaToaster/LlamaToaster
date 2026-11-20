@@ -6,7 +6,7 @@
 set -e
 NAME=com.llamatoaster.vram
 # Every LlamaToaster extension ID allowed to call the host (see register.ps1).
-ORIGINS='"chrome-extension://odghfahbjacleniojhemnojbiabfebon/"'
+ORIGINS='"chrome-extension://odghfahbjacleniojhemnojbiabfebon/","chrome-extension://lmgiomdgkifkclhigbnagcafibbegjmg/"'
 DIR=$(cd "$(dirname "$0")" && pwd)
 UNINSTALL=0
 [ "${1:-}" = --uninstall ] && UNINSTALL=1
