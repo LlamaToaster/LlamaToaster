@@ -76,9 +76,11 @@ describe("groupHfFilesByTier", () => {
     expect(all.find((c) => c.file.startsWith("imatrix"))?.kind).toBe("imatrix");
   });
 
-  it("a repo of drafts only gets no badge, as on Hugging Face, and still no fit check", () => {
-    const all = groupHfFilesByTier([f("dspark-x-Q4_0.gguf", 230), f("dspark-x-Q8_0.gguf", 400)]).flatMap((x) => x.chips);
-    expect(all.map((c) => [c.kind, c.aux])).toEqual([["aux", undefined], ["aux", undefined]]);
+  it("a repo of drafts only, unbadged on Hugging Face, gets our badge and no fit check", () => {
+    const dspark = groupHfFilesByTier([f("dspark-x-Q4_0.gguf", 230), f("dspark-x-Q8_0.gguf", 400)]).flatMap((x) => x.chips);
+    expect(dspark.map((c) => [c.kind, c.aux?.label, c.aux?.byHf])).toEqual([["aux", "DSPARK", false], ["aux", "DSPARK", false]]);
+    const eagle = groupHfFilesByTier([f("x-speculator.eagle3-F16.gguf", 400)]).flatMap((x) => x.chips);
+    expect(eagle.map((c) => [c.kind, c.aux?.label, c.aux?.byHf])).toEqual([["aux", "EAGLE3", false]]);
   });
 });
 

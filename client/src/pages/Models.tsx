@@ -1592,8 +1592,8 @@ export function Models() {
     const pct = inFlight.length > 0 && chip.sizeBytes > 0 ? Math.min(100, Math.round((bytes / chip.sizeBytes) * 100)) : null;
     const onMachine = !!fitWorker && item.isLocalOn(fitWorker);
     return (
-      // An MTP head or DFlash/DSpark draft carries Hugging Face's own badge and
-      // tooltip (shared/hfAuxFiles.ts) and nothing of ours: no fit mark.
+      // An MTP head or a DFlash/DSpark/EAGLE3 draft carries Hugging Face's badge
+      // and tooltip (ours in its words where it has none) and no fit mark.
       <span key={chip.file} title={chip.aux?.tooltip} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1 text-xs text-fg">
         {chip.kind === "quant" && <FitMark state={state} subject={chip.label} onClick={() => openFitForOne(item, fitWorker, state)} />}
         {(chip.kind === "mmproj" || chip.kind === "imatrix" || chip.aux) && (
