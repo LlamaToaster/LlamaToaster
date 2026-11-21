@@ -9,6 +9,7 @@ import type { EngineKind } from "./engineSpec.js";
 import type { KvLayout, TensorLayerBreakdown } from "./vramEstimate.js";
 import type { ProbeGranularity, ProbeMode } from "./probeLadder.js";
 import { isRocmSupportedGpu, gpuNameInList, COMMUNITY_ROCM_GPUS, type RocmSupportList } from "./rocmSupport.js";
+import { hfAuxKind } from "./hfAuxFiles.js";
 export type { RocmSupportList, RocmSupportSnapshot } from "./rocmSupport.js";
 
 // Well-known values used for auto-detection's own guess (see
@@ -414,6 +415,21 @@ export function isMtpDraftModel(m: { metadata: ModelMetadata; hf_file?: string; 
   const { n_layer, mtp_layers } = m.metadata;
   if (typeof mtp_layers === "number" && mtp_layers > 0 && typeof n_layer !== "number") return true;
   return MTP_FILENAME_PATTERN.test(m.hf_file ?? m.filename);
+}
+
+// A file Hugging Face tags as a DFlash or DSpark draft (shared/hfAuxFiles.ts):
+// an auxiliary model for speculative decoding, never a model to test or serve
+// on its own. By name only, like Hugging Face. Not an MTP companion either:
+// those pair through --spec-type draft-mtp, see isMtpDraftModel.
+export function isSpecDraftModel(m: { hf_file?: string | null; filename: string }): boolean {
+  const kind = hfAuxKind(m.hf_file ?? m.filename);
+  return kind === "dflash" || kind === "dspark";
+}
+
+// Not a standalone model: an MTP companion or a DFlash/DSpark draft. Lists of
+// models to test, compare or fit-check leave these out.
+export function isDraftModel(m: { metadata: ModelMetadata; hf_file?: string; filename: string }): boolean {
+  return isMtpDraftModel(m) || isSpecDraftModel(m);
 }
 
 export interface RegisterModelInput {

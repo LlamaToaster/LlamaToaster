@@ -2,8 +2,9 @@
 // picker, so "which files count as the same model" and "which draft file is
 // this model's MTP companion" are answered identically in both places.
 import { modelAuthor, modelFamily } from "./utils";
-import { isMtpDraftModel, MTP_FILENAME_PATTERN } from "./types";
+import { isDraftModel, isMtpDraftModel } from "./types";
 import type { HfFileEntry, Model } from "./types";
+import { hfAuxKind, hfAuxTags, type HfAuxTag } from "../../shared/hfAuxFiles.js";
 
 // Mirrors server/src/hf.ts's QUANT_PATTERN -- used here only to strip a
 // quant token off a *local* model's filename (an HF-backed model's grouping
@@ -113,7 +114,9 @@ export interface ModelGroup {
 }
 
 export function buildModelGroups(models: Model[]): ModelGroup[] {
-  const bases = models.filter((m) => !isMtpDraftModel(m));
+  // A DFlash/DSpark draft is no model of its own, nor an MTP companion: it is
+  // in neither list (the Models page shows it on its own row).
+  const bases = models.filter((m) => !isDraftModel(m));
   const drafts = models.filter((m) => isMtpDraftModel(m));
 
   const groups = new Map<string, ModelGroup>();
@@ -145,8 +148,12 @@ export interface HfQuantChip {
   /** Shard 1, or the file itself: what llama.cpp is pointed at. */
   file: string;
   label: string;
-  /** Only "quant" can run on its own, so only it gets a fit check. */
-  kind: "quant" | "mtp" | "mmproj";
+  /** Only "quant" can run on its own, so only it gets a fit check. "aux" is a
+   * file Hugging Face names an MTP head or a DFlash/DSpark draft. */
+  kind: "quant" | "aux" | "mmproj" | "imatrix";
+  /** Hugging Face's own badge and tooltip for an "aux" chip; absent when every
+   * file in the repo is one, where Hugging Face shows no badge either. */
+  aux?: HfAuxTag;
   files: HfFileEntry[];
   sizeBytes: number;
 }
@@ -158,9 +165,10 @@ export interface HfQuantTier {
 
 const SHARD_SUFFIX = /-\d{5}-of-\d{5}\.gguf$/i;
 
-// Bit-width rows for a repo's file list. MTP drafts sit in their bit row with a
-// tag, as on the model card. The card leaves mmproj files and anything without a
-// quant token out; they stay reachable here, in a last "Other" row.
+// Bit-width rows for a repo's file list. MTP heads and DFlash/DSpark drafts sit
+// in their bit row with Hugging Face's own badge and words (shared/hfAuxFiles.ts).
+// The card leaves mmproj/imatrix files and anything without a quant token out;
+// they stay reachable here, in a last "Other" row.
 export function groupHfFilesByTier(files: HfFileEntry[]): HfQuantTier[] {
   const chips = new Map<string, HfQuantChip>();
   for (const f of [...files].sort((a, b) => a.path.localeCompare(b.path))) {
@@ -175,15 +183,19 @@ export function groupHfFilesByTier(files: HfFileEntry[]): HfQuantTier[] {
     chips.set(key, {
       file: f.path,
       label: extractQuant(name) ?? name.replace(/\.gguf$/i, ""),
-      kind: /(^|\/)mmproj/i.test(f.path) ? "mmproj" : MTP_FILENAME_PATTERN.test(f.path) ? "mtp" : "quant",
+      kind: /(^|\/)mmproj/i.test(f.path) ? "mmproj" : /imatrix/i.test(f.path) ? "imatrix" : hfAuxKind(f.path) ? "aux" : "quant",
       files: [f],
       sizeBytes: f.size_bytes,
     });
   }
+  const rankOf = (chip: HfQuantChip) => (chip.kind === "mmproj" || chip.kind === "imatrix" ? Infinity : quantBitRank(extractQuant(chip.file.split("/").pop() ?? chip.file)));
+  const table = [...chips.values()].filter((c) => c.kind === "quant" || c.kind === "aux");
+  const tags = hfAuxTags(table.map((c) => ({ path: c.file, sizeBytes: c.sizeBytes, level: String(rankOf(c)) })));
   const tiers = new Map<number, HfQuantChip[]>();
   for (const chip of chips.values()) {
-    const name = chip.file.split("/").pop() ?? chip.file;
-    const rank = chip.kind === "mmproj" ? Infinity : quantBitRank(extractQuant(name));
+    const tag = tags.get(chip.file);
+    if (tag) chip.aux = tag;
+    const rank = rankOf(chip);
     tiers.set(rank, [...(tiers.get(rank) ?? []), chip]);
   }
   return [...tiers.entries()]
