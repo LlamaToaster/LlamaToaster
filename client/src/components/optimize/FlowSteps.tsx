@@ -12,6 +12,7 @@ import type { FlowContext } from "./flowContext";
 import { speedRunView, spilledMib } from "./flowData";
 import { machineKind, stateLabel, type FitAnswer, type Verdict } from "./machine";
 import { isActive, type FitData, type FlowRun } from "./useOptimizeFlow";
+import { fileLayerLabel } from "../../../../shared/layerCount.js";
 import { STEP_LABEL, nextStep, prevStep, type StepId, type StepState } from "./steps";
 import { detectMoe } from "../../../../shared/moePlacement.js";
 import { KV_QUALITY_WARNING } from "../../../../shared/kvSupport.js";
@@ -269,7 +270,7 @@ export function ModelStep({
                   <span className="block truncate font-medium">{modelLabelOf(m)}</span>
                   <span className="block text-[13px] text-muted">
                     {(m.size_bytes / 1073741824).toFixed(1)} GB
-                    {typeof m.metadata.n_layer === "number" ? ` · ${m.metadata.n_layer} layers` : ""}
+                    {typeof m.metadata.n_layer === "number" ? ` · ${fileLayerLabel({ n_layer: m.metadata.n_layer, mtp_layers: m.metadata.mtp_layers })}` : ""}
                     {mo.isMoe ? " · mixture of experts" : " · dense"}
                     {typeof m.metadata.trained_ctx === "number" ? ` · up to ${ctxLabel(m.metadata.trained_ctx)} context` : ""}
                   </span>
