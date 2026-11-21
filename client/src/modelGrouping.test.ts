@@ -53,12 +53,34 @@ describe("groupHfFilesByTier", () => {
     expect(bf16.files).toHaveLength(2);
   });
 
-  it("keeps MTP drafts in their bit row, tagged", () => {
-    expect(tiers[2].chips.map((c) => [c.label, c.kind])).toEqual([["Q8_0", "mtp"], ["Q8_0", "quant"]]);
+  it("keeps MTP drafts in their bit row, with Hugging Face's badge and tooltip", () => {
+    expect(tiers[2].chips.map((c) => [c.label, c.kind, c.aux?.label])).toEqual([["Q8_0", "aux", "MTP"], ["Q8_0", "quant", undefined]]);
+    expect(tiers[2].chips[0].aux?.tooltip).toBe("Multi-Token Prediction (MTP) head: an auxiliary module that speeds up inference, not a standalone model.");
   });
 
   it("drops nothing: mmproj and an unlabelled MTP land in Other", () => {
-    expect(tiers[4].chips.map((c) => c.kind).sort()).toEqual(["mmproj", "mtp"]);
+    expect(tiers[4].chips.map((c) => c.kind).sort()).toEqual(["aux", "mmproj"]);
+  });
+
+  it("tags DSpark and DFlash drafts and an imatrix, none of them a quant", () => {
+    const t = groupHfFilesByTier([
+      f("gemma-Q4_K_M.gguf", 7_000),
+      f("dspark-gemma-Q4_K_M.gguf", 230),
+      f("gemma-dflash-Q8_0.gguf", 900),
+      f("imatrix_unsloth.gguf", 10),
+    ]);
+    const all = t.flatMap((x) => x.chips);
+    expect(all.filter((c) => c.kind === "quant").map((c) => c.file)).toEqual(["gemma-Q4_K_M.gguf"]);
+    expect(all.find((c) => c.file.startsWith("dspark"))?.aux?.label).toBe("DSPARK");
+    expect(all.find((c) => c.file.includes("dflash"))?.aux?.label).toBe("DFLASH");
+    expect(all.find((c) => c.file.startsWith("imatrix"))?.kind).toBe("imatrix");
+  });
+
+  it("a repo of drafts only, unbadged on Hugging Face, gets our badge and no fit check", () => {
+    const dspark = groupHfFilesByTier([f("dspark-x-Q4_0.gguf", 230), f("dspark-x-Q8_0.gguf", 400)]).flatMap((x) => x.chips);
+    expect(dspark.map((c) => [c.kind, c.aux?.label, c.aux?.byHf])).toEqual([["aux", "DSPARK", false], ["aux", "DSPARK", false]]);
+    const eagle = groupHfFilesByTier([f("x-speculator.eagle3-F16.gguf", 400)]).flatMap((x) => x.chips);
+    expect(eagle.map((c) => [c.kind, c.aux?.label, c.aux?.byHf])).toEqual([["aux", "EAGLE3", false]]);
   });
 });
 

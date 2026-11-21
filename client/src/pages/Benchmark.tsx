@@ -13,7 +13,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useWorkerStatuses } from "../api/useWorkerStatus";
 import type { Model, Worker } from "../types";
-import { isMtpDraftModel } from "../types";
+import { isDraftModel } from "../types";
 import { Btn, Notice, PageHeader } from "../components/optimize/ui";
 import { useOptimizeFlow, isActive } from "../components/optimize/useOptimizeFlow";
 import type { FlowContext } from "../components/optimize/flowContext";
@@ -133,7 +133,7 @@ export function Benchmark() {
   const worker = workers.find((w) => w.id === workerId);
   const presentModels = useMemo(() => {
     if (!locations) return [];
-    return models.filter((m) => !isMtpDraftModel(m) && (workerId ? locations[m.id]?.includes(workerId) : (locations[m.id]?.length ?? 0) > 0));
+    return models.filter((m) => !isDraftModel(m) && (workerId ? locations[m.id]?.includes(workerId) : (locations[m.id]?.length ?? 0) > 0));
   }, [models, locations, workerId]);
 
   // The list's verdict context: the target, never past the model's maximum context.

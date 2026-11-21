@@ -29,7 +29,7 @@ import {
   modelParamsB,
   paramsBFromText,
 } from "../utils";
-import { isMtpDraftModel } from "../types";
+import { isDraftModel } from "../types";
 import type {
   Model,
   ModelDirFile,
@@ -380,7 +380,7 @@ function sortModelGroups(groups: ModelGroup[], field: SortField, dir: SortDir): 
 function orphanDrafts(subset: Model[], groups: ModelGroup[]): Model[] {
   const paired = new Set<string>();
   for (const g of groups) for (const q of g.quants) for (const d of q.drafts) paired.add(d.id);
-  return subset.filter((m) => isMtpDraftModel(m) && !paired.has(m.id));
+  return subset.filter((m) => isDraftModel(m) && !paired.has(m.id));
 }
 
 export function Models() {
@@ -1385,7 +1385,7 @@ export function Models() {
         key={key}
         className={`group/badge relative inline-flex items-center gap-1 ${isFirstInTier ? "" : "border-l border-border pl-2.5"}`}
       >
-        {!isMtpDraftModel(m) && (
+        {!isDraftModel(m) && (
           <FitMark
             state={modelFit.stateOf(worker.id, fitTargetKey(m))}
             subject={quant}
@@ -1592,10 +1592,12 @@ export function Models() {
     const pct = inFlight.length > 0 && chip.sizeBytes > 0 ? Math.min(100, Math.round((bytes / chip.sizeBytes) * 100)) : null;
     const onMachine = !!fitWorker && item.isLocalOn(fitWorker);
     return (
-      <span key={chip.file} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1 text-xs text-fg">
+      // An MTP head or a DFlash/DSpark/EAGLE3 draft carries Hugging Face's badge
+      // and tooltip (ours in its words where it has none) and no fit mark.
+      <span key={chip.file} title={chip.aux?.tooltip} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1 text-xs text-fg">
         {chip.kind === "quant" && <FitMark state={state} subject={chip.label} onClick={() => openFitForOne(item, fitWorker, state)} />}
-        {chip.kind !== "quant" && (
-          <span className="rounded border border-border px-1 font-mono text-[9.5px] text-muted">{chip.kind === "mtp" ? "MTP" : "mmproj"}</span>
+        {(chip.kind === "mmproj" || chip.kind === "imatrix" || chip.aux) && (
+          <span className="rounded border border-border px-1 font-mono text-[9.5px] text-muted">{chip.aux?.label ?? chip.kind}</span>
         )}
         <a href={hfFileUrl(repoId, chip.file)} target="_blank" rel="noreferrer" className="font-mono font-semibold text-fg hover:text-accent hover:underline">
           {chip.label}

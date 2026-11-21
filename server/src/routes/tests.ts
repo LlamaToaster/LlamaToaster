@@ -29,6 +29,7 @@ import { MIN_PROBE_CTX, MAX_PROBE_CTX, DATASET_HASH_RE } from "./measurements.js
 import { recheckComparisonMember } from "./comparisons.js";
 import {
   isTerminalTestItemInput,
+  isDraftModel,
   isMtpDraftModel,
   backendVisibleGpus,
   GPU_MEMORY_ACCURACY_LEVELS,
@@ -919,7 +920,7 @@ export async function testsRoutes(app: FastifyInstance): Promise<void> {
       // the live-recomputed check rather than trusting metadata.mtp_role
       // alone, so a model registered before a detection-logic fix is still
       // correctly rejected.
-      if (isMtpDraftModel(model)) {
+      if (isDraftModel(model)) {
         return reply.code(400).send({
           error: "model_id refers to a standalone MTP/draft companion file, not a benchmarkable base model",
         });

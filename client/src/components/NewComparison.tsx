@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
-import { isMtpDraftModel } from "../types";
+import { isDraftModel } from "../types";
 import type { Model, Worker } from "../types";
 import { priceMatrix, ETA_UNAVAILABLE } from "../../../shared/pricing";
 import { MAX_COMPARISON_MEMBERS, MIN_COMPARISON_MEMBERS } from "../../../shared/comparison";
@@ -48,7 +48,7 @@ export function NewComparison({ onCreated }: { onCreated: (comparisonId: string)
     const hashes = new Set(
       (worker.modelFiles ?? []).map((f) => f.sha256).filter((h): h is string => typeof h === "string")
     );
-    return models.filter((m) => hashes.has(m.id) && !isMtpDraftModel(m));
+    return models.filter((m) => hashes.has(m.id) && !isDraftModel(m));
   }, [worker, models]);
 
   useEffect(() => {

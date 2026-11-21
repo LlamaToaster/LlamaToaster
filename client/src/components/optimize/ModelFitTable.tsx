@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
 import type { Model, Worker } from "../../types";
-import { isMtpDraftModel } from "../../types";
+import { isDraftModel } from "../../types";
 import { LtIcon } from "../ltIcons";
 import { modelVerdict } from "./machine";
 
@@ -38,7 +38,7 @@ export function ModelFitTable() {
     };
   }, []);
 
-  const rows = useMemo(() => models.filter((m) => !isMtpDraftModel(m) && (locations[m.id]?.length ?? 0) > 0), [models, locations]);
+  const rows = useMemo(() => models.filter((m) => !isDraftModel(m) && (locations[m.id]?.length ?? 0) > 0), [models, locations]);
   if (rows.length === 0 || workers.length === 0) return null;
 
   return (
