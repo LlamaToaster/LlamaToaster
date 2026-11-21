@@ -5,6 +5,7 @@ import type { Model, Worker } from "../../types";
 import { isMtpDraftModel } from "../../types";
 import { LtIcon } from "../ltIcons";
 import { modelVerdict } from "./machine";
+import { fileLayerLabel } from "../../../../shared/layerCount.js";
 
 // The v2 Models screen's matrix (docs/plans/app-v2.dc.html): every model on
 // any of your machines against every machine, with the quick fit verdict at
@@ -71,7 +72,7 @@ export function ModelFitTable() {
                   <th scope="row" className="px-4 py-2.5 text-left font-medium">
                     <span className="block text-sm">{label(m)}</span>
                     <span className="block font-mono text-xs font-normal text-muted">
-                      {(m.size_bytes / 1073741824).toFixed(1)} GB{typeof m.metadata.n_layer === "number" ? ` · ${m.metadata.n_layer} layers` : ""}
+                      {(m.size_bytes / 1073741824).toFixed(1)} GB{typeof m.metadata.n_layer === "number" ? ` · ${fileLayerLabel({ n_layer: m.metadata.n_layer, mtp_layers: m.metadata.mtp_layers })}` : ""}
                     </span>
                   </th>
                   {workers.map((w) => {
