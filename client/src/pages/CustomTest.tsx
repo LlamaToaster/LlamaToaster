@@ -16,6 +16,7 @@ import { GoalQuestionnaire } from "../components/GoalQuestionnaire";
 import { defaultGoals, goalsEqualDefaults, normalizeGoals, type GoalsConfig, type WorkloadShape } from "../goals";
 import { countSweepItems, expandSweep } from "../../../shared/sweep";
 import { priceMatrix, ETA_UNAVAILABLE } from "../../../shared/pricing";
+import { resolveMetalBudget } from "../../../shared/metalBudget";
 import type { ModelRatesResponse } from "../types";
 
 type Sweep = Omit<SweepConfig, "model_id">;
@@ -596,6 +597,15 @@ export function CustomTest() {
   // model's real per-tensor breakdown when available -- see
   // shared/vramEstimate.ts's placeWeightBytes -- falling back to the flat
   // per-layer average (weakest for MoE/large-vocab models) otherwise.
+  // On a Mac the GPU may hold only part of the unified pool (Metal's
+  // working-set limit); everything below checks against that, not the pool.
+  const metalLimit = useMemo(() => {
+    if (workerHardware?.platform !== "darwin" || workerHardware.unified_memory !== true) return null;
+    const totalMib = liveVram?.gpu_memory_total_mib ?? (workerHardware.mem_total_bytes ? workerHardware.mem_total_bytes / 1048576 : 0);
+    const listed = workerHardware.gpu.find((g) => g.vram_listed_total_mb != null)?.vram_listed_total_mb;
+    return resolveMetalBudget({ totalMib, listedMib: listed });
+  }, [workerHardware, liveVram]);
+
   const vramFitEstimate = useMemo(() => {
     if (!selectedModel || baseLayerCount == null || liveVram?.vram_free_before_mib == null) return null;
     const requestedNgl = sweep.n_gpu_layers.length > 0 ? Math.max(...sweep.n_gpu_layers) : 0;
@@ -610,7 +620,11 @@ export function CustomTest() {
       tensorBreakdown,
     });
     if (neededMib == null) return null;
-    const freeMib = liveVram.vram_free_before_mib;
+    // Pool free, capped by what is left under the Metal limit on a Mac.
+    const poolFree = liveVram.vram_free_before_mib;
+    const poolTotal = liveVram.gpu_memory_total_mib;
+    const freeMib =
+      metalLimit && poolTotal != null ? Math.min(poolFree, Math.max(0, metalLimit.mib - (poolTotal - poolFree))) : poolFree;
     return {
       modelSizeBytes: selectedModel.size_bytes,
       neededMib,
@@ -618,7 +632,7 @@ export function CustomTest() {
       safeNgl: estimateSafeNgl(selectedModel.size_bytes, baseLayerCount, freeMib, tensorBreakdown),
       fits: neededMib <= freeMib,
     };
-  }, [selectedModel, baseLayerCount, sweep.n_gpu_layers, sweep.n_cpu_moe, liveVram]);
+  }, [selectedModel, baseLayerCount, sweep.n_gpu_layers, sweep.n_cpu_moe, liveVram, metalLimit]);
 
   const threadsMax = workerHardware?.cpu.cores || THREADS_FALLBACK_MAX;
   const threadsSuggested = Math.max(1, threadsMax - 1);
@@ -954,7 +968,7 @@ export function CustomTest() {
           // Benchmark console.
           ctxGranularity="fine"
           affordability={{
-            totalMib: liveVram?.gpu_memory_total_mib ?? null,
+            totalMib: metalLimit?.mib ?? liveVram?.gpu_memory_total_mib ?? null,
             weightsMib:
               selectedModel && baseLayerCount != null
                 ? estimateVramNeededMib({

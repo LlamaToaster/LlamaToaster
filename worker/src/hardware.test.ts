@@ -161,11 +161,22 @@ describe("mergeListedDevices", () => {
       [dev("Vulkan0", "Intel(R) UHD Graphics 620", 8000, 6000)]
     );
     expect(igpu.gpu[0].vram_usable_mb).toBeUndefined();
+  });
+
+  it("gives Apple silicon the Metal working-set limit as its listed total", () => {
     const apple = mergeListedDevices(
-      base([{ vendor: "Apple", model: "Apple M2 Pro", vram_mb: null }], { unified_memory: true }),
-      [dev("Metal", "Apple M2 Pro", 21845, 20000)]
+      base([{ vendor: "Apple", model: "Apple M2 Pro", vram_mb: null }], { platform: "darwin", arch: "arm64", unified_memory: true }),
+      [dev("MTL0", "Apple M2 Pro", 21845, 20000)]
     );
-    expect(apple.gpu[0].vram_usable_mb).toBeUndefined();
+    expect(apple.gpu[0]).toMatchObject({ vram_usable_mb: 20000, vram_listed_total_mb: 21845 });
+  });
+
+  it("does not hand a non-Mac unified-memory flag the same treatment", () => {
+    const other = mergeListedDevices(
+      base([{ vendor: "Apple", model: "Apple M2 Pro", vram_mb: null }], { platform: "linux", unified_memory: true }),
+      [dev("MTL0", "Apple M2 Pro", 21845, 20000)]
+    );
+    expect(other.gpu[0].vram_usable_mb).toBeUndefined();
   });
 
   it("does not mutate its input and skips unmatched GPUs", () => {

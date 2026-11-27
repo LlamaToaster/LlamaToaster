@@ -197,15 +197,18 @@ function gpuNamesMatch(model: string, description: string): boolean {
  * Attaches llama.cpp's `--list-devices` figures to each GPU: "max usable VRAM"
  * (the device's reported free memory) and the device's listed total. Each
  * listed device is claimed by at most one GPU, in order, so two identical
- * cards map to two devices. Shared-memory GPUs (iGPUs, unified memory) get
- * nothing -- their "VRAM" is system RAM, already shown as RAM. A GPU no device
+ * cards map to two devices. Integrated GPUs get nothing -- their "VRAM" is
+ * system RAM, already shown as RAM. Apple silicon is the exception: the Metal
+ * device's listed total is its working-set limit (what the GPU may hold, below
+ * the whole unified pool), and a load is checked against it. A GPU no device
  * matches is left as it was. Returns a copy; `hw` is not mutated.
  */
 export function mergeListedDevices(hw: HardwareInfo, devices: readonly ListedDevice[]): HardwareInfo {
   const claimed = new Set<number>();
   const listed = devices.filter((d) => d.totalMib > 0);
+  const appleSilicon = hw.unified_memory === true && hw.platform === "darwin";
   const gpu = hw.gpu.map((g) => {
-    if (isSharedMemoryGpu(g, hw.unified_memory)) return g;
+    if (!appleSilicon && isSharedMemoryGpu(g, hw.unified_memory)) return g;
     let idx = listed.findIndex((d, i) => !claimed.has(i) && gpuNamesMatch(g.model, d.description));
     // A lone discrete GPU with a lone listed device is the same card even when
     // the two names share no token (driver-specific naming).
