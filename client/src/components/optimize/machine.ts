@@ -11,6 +11,7 @@ import {
 import type { LtIconName } from "../ltIcons";
 import { fmtGb } from "./ui";
 import { ctxLabel } from "../../../../shared/optimizeFlow.js";
+import { resolveMetalBudget, type MetalBudget } from "../../../../shared/metalBudget.js";
 import { simulateFit } from "../../../../shared/fitSimulate.js";
 import { DEFAULT_FIT_MARGIN_MIB } from "../../../../shared/fitParams.js";
 
@@ -30,6 +31,13 @@ export function machineKind(w: Worker): MachineKind {
   const hasGpu = w.backend !== "cpu" && gpus.length > 0;
   const unified = w.backend === "metal" || w.hardware?.unified_memory === true || gpus.some((g) => g.vram_dynamic === true);
   return { hasGpu, unified, gpus };
+}
+
+// What the GPU may hold on a Mac: the Metal device llama.cpp listed when the
+// worker has read it, otherwise the default for this much RAM.
+function metalLimitMib(w: Worker, ramMib: number): MetalBudget | null {
+  const listed = w.hardware?.gpu.find((g) => g.vram_listed_total_mb != null)?.vram_listed_total_mb;
+  return resolveMetalBudget({ totalMib: ramMib, listedMib: listed });
 }
 
 export function stateLabel(w: Worker): string {
@@ -149,6 +157,17 @@ export function modelVerdict(model: Model, w: Worker | undefined, ctx: number, f
   if (!hasGpu || unified) {
     if (ramMib == null) return null;
     const need = deviceNeed + cpuWeights;
+    // Metal caps what the GPU may hold below the whole pool: the blocks, KV
+    // and compute buffer must fit that limit (the CPU-side weights are outside it).
+    const metal = w.hardware?.platform === "darwin" && unified ? metalLimitMib(w, ramMib) : null;
+    if (metal && need <= ramMib * 0.9 && deviceNeed > metal.mib * 0.95) {
+      const how = metal.source === "estimate" ? " (estimate)" : "";
+      return {
+        icon: "spill",
+        text: `${fmtGb(deviceNeed)} on the GPU vs Metal's ${fmtGb(metal.mib)} limit at ${ctxLabel(ctx)}${how} · lower the offload, or raise iogpu.wired_limit_mb`,
+        tone: "text-warning",
+      };
+    }
     return need <= ramMib * 0.9
       ? { icon: "chip", text: `${unified ? "Unified" : "CPU only"} · ${fmtGb(need)} / ${fmtGb(ramMib, 0)}`, tone: "text-fg-2" }
       : { icon: "oom", text: "Too big for RAM", tone: "text-danger" };

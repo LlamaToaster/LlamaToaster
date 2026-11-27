@@ -96,6 +96,21 @@ describe("computeDualPoolFit", () => {
     expect(at0.fits).toBe(at10.fits);
   });
 
+  it("unified pool: the GPU-resident part must fit the Metal budget even when the whole pool has room", () => {
+    const base = { ...MODEL, ctxTokens: 2000, ngl: MODEL.totalModelLayers, ram: { freeMib: 100_000, totalMib: 100_000 }, unifiedPool: true };
+    const wide = computeDualPoolFit({ ...base, vram: { freeMib: 100_000, totalMib: 100_000 } });
+    expect(wide.fits).toBe(true);
+    expect(wide.gpuBudget?.fits).toBe(true);
+    // Budget below the GPU-side need: too big for Metal although RAM is plentiful.
+    const capped = computeDualPoolFit({ ...base, vram: { freeMib: 1000, totalMib: 1000 } });
+    expect(capped.gpuBudget?.fits).toBe(false);
+    expect(capped.fits).toBe(false);
+    // Layers left on the CPU are outside the budget: ngl 0 leaves only the overhead on the GPU.
+    const cpuOnly = computeDualPoolFit({ ...base, ngl: 0, vram: { freeMib: 1000, totalMib: 1000 } });
+    expect(cpuOnly.gpuBudget?.weightsMib).toBe(0);
+    expect(cpuOnly.fits).toBe(true);
+  });
+
   // With a sliding window set, the GPU side is always the SUFFIX of
   // GPU-resident blocks (llama.cpp offloads the last `ngl` blocks first) and
   // the Gemma-style pattern's global block is always the model's LAST
