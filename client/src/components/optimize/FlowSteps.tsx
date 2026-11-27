@@ -276,7 +276,7 @@ export function ModelStep({
                   </span>
                 </span>
                 {v && (
-                  <span className={`inline-flex items-center gap-1.5 text-[13px] ${v.tone}`}>
+                  <span className={`inline-flex items-center gap-1.5 text-[13px] ${v.tone}`} title={v.title}>
                     <LtIcon name={v.icon} size={15} />
                     {v.text}
                   </span>

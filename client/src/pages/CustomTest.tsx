@@ -16,7 +16,7 @@ import { GoalQuestionnaire } from "../components/GoalQuestionnaire";
 import { defaultGoals, goalsEqualDefaults, normalizeGoals, type GoalsConfig, type WorkloadShape } from "../goals";
 import { countSweepItems, expandSweep } from "../../../shared/sweep";
 import { priceMatrix, ETA_UNAVAILABLE } from "../../../shared/pricing";
-import { resolveMetalBudget } from "../../../shared/metalBudget";
+import { metalBudgetNote, resolveMetalBudget } from "../../../shared/metalBudget";
 import type { ModelRatesResponse } from "../types";
 
 type Sweep = Omit<SweepConfig, "model_id">;
@@ -950,6 +950,12 @@ export function CustomTest() {
         One grid, every value yours. Every combination of the values below is expanded into one llama-bench sweep,
         averaged over the repeat count.
       </p>
+      {metalLimit && (
+        <p className="mt-1 max-w-2xl text-sm text-muted">
+          GPU memory limit on this Mac: {Math.round(metalLimit.mib / 1024)} GB{metalLimit.source === "estimate" ? " (estimate)" : ""}.{" "}
+          {metalBudgetNote(metalLimit.source)}
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-6">
         {/* M2 -- captured BEFORE the grid is built: everything downstream

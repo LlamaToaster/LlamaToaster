@@ -11,7 +11,7 @@ import {
 import type { LtIconName } from "../ltIcons";
 import { fmtGb } from "./ui";
 import { ctxLabel } from "../../../../shared/optimizeFlow.js";
-import { resolveMetalBudget, type MetalBudget } from "../../../../shared/metalBudget.js";
+import { metalBudgetNote, resolveMetalBudget, type MetalBudget } from "../../../../shared/metalBudget.js";
 import { simulateFit } from "../../../../shared/fitSimulate.js";
 import { DEFAULT_FIT_MARGIN_MIB } from "../../../../shared/fitParams.js";
 
@@ -50,6 +50,8 @@ export interface Verdict {
   icon: LtIconName;
   text: string;
   tone: string;
+  /** Hover note explaining where a number came from. */
+  title?: string;
 }
 
 // One fit answer for a model at one context: llama-fit-params' own (a fit
@@ -161,10 +163,11 @@ export function modelVerdict(model: Model, w: Worker | undefined, ctx: number, f
     // and compute buffer must fit that limit (the CPU-side weights are outside it).
     const metal = w.hardware?.platform === "darwin" && unified ? metalLimitMib(w, ramMib) : null;
     if (metal && need <= ramMib * 0.9 && deviceNeed > metal.mib * 0.95) {
-      const how = metal.source === "estimate" ? " (estimate)" : "";
+      const how = metal.source === "estimate" ? " (estimate, ~75% of RAM)" : "";
       return {
         icon: "spill",
         text: `${fmtGb(deviceNeed)} on the GPU vs Metal's ${fmtGb(metal.mib)} limit at ${ctxLabel(ctx)}${how} · lower the offload, or raise iogpu.wired_limit_mb`,
+        title: metalBudgetNote(metal.source),
         tone: "text-warning",
       };
     }

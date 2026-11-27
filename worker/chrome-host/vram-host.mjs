@@ -70,12 +70,13 @@ function mac() {
   const chip = run("sysctl", ["-n", "machdep.cpu.brand_string"]).trim();
   // How much of that pool the GPU may hold (Metal's working-set limit). Apple
   // publishes no formula: iogpu.wired_limit_mb when set (0 = default; before
-  // macOS Sonoma debug.iogpu.wired_limit), else ~2/3 of RAM up to 36 GiB and
-  // 3/4 above -- same rule as shared/metalBudget.ts, flagged as an estimate.
+  // macOS Sonoma debug.iogpu.wired_limit), else ~75% of RAM (an estimate;
+  // Apple does not publish it) -- same rule as shared/metalBudget.ts.
   const totalMib = Math.round(total / MIB);
-  const wired = [run("sysctl", ["-n", "iogpu.wired_limit_mb"]), run("sysctl", ["-n", "debug.iogpu.wired_limit"])]
-    .map((s) => Number(s.trim())).find((n) => Number.isFinite(n) && n > 0);
-  const gpuLimitMib = totalMib > 0 ? (wired ? Math.min(Math.round(wired), totalMib) : Math.round(totalMib * (totalMib <= 36 * 1024 ? 2 / 3 : 3 / 4))) : null;
+  // The pre-Sonoma name counts bytes, the current one MiB.
+  const wired = [Number(run("sysctl", ["-n", "iogpu.wired_limit_mb"]).trim()), Number(run("sysctl", ["-n", "debug.iogpu.wired_limit"]).trim()) / MIB]
+    .find((n) => Number.isFinite(n) && n > 0);
+  const gpuLimitMib = totalMib > 0 ? (wired ? Math.min(Math.round(wired), totalMib) : Math.round(totalMib * 0.75)) : null;
   return [{ name: chip || "Apple GPU", vendor: "Apple", vendorId: 0x106b, deviceId: 0, integrated: true,
     dedicatedTotalMib: 0, sharedTotalMib: totalMib, dedicatedUsedMib: null, sharedUsedMib: Math.round((total - free) / MIB),
     gpuLimitMib, gpuLimitSource: wired ? "sysctl" : "estimate" }];

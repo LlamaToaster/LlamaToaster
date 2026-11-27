@@ -82,7 +82,7 @@ export function ModelFitTable() {
                     return (
                       <td key={w.id} className="px-2 py-2.5 text-sm">
                         {v ? (
-                          <span className={`inline-flex items-center gap-1.5 ${v.tone}`}>
+                          <span className={`inline-flex items-center gap-1.5 ${v.tone}`} title={v.title}>
                             <LtIcon name={v.icon} size={16} />
                             {v.text}
                           </span>

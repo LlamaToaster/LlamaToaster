@@ -1,19 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { estimateMetalWorkingSetMib, resolveMetalBudget } from "./metalBudget";
+import { estimateMetalWorkingSetMib, metalBudgetNote, resolveMetalBudget } from "./metalBudget";
 
 const GIB = 1024;
 
 describe("estimateMetalWorkingSetMib", () => {
-  it("is two thirds of RAM up to 36 GiB", () => {
-    expect(estimateMetalWorkingSetMib(16 * GIB)).toBe(Math.round((16 * GIB * 2) / 3));
-    expect(estimateMetalWorkingSetMib(32 * GIB)).toBe(Math.round((32 * GIB * 2) / 3));
-  });
-  it("is three quarters above 36 GiB", () => {
+  it("is three quarters of RAM", () => {
+    expect(estimateMetalWorkingSetMib(16 * GIB)).toBe(12 * GIB);
     expect(estimateMetalWorkingSetMib(64 * GIB)).toBe(48 * GIB);
-    expect(estimateMetalWorkingSetMib(96 * GIB)).toBe(72 * GIB);
   });
   it("is 0 for no memory", () => {
     expect(estimateMetalWorkingSetMib(0)).toBe(0);
+  });
+});
+
+describe("metalBudgetNote", () => {
+  it("flags the estimate and names the override", () => {
+    expect(metalBudgetNote("estimate")).toMatch(/Estimate.*75%.*iogpu\.wired_limit_mb/s);
+    expect(metalBudgetNote("listed")).toMatch(/llama\.cpp/);
   });
 });
 
